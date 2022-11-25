@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -100,6 +100,35 @@ async function run() {
       const product = req.body;
       const result = await productsCollection.insertOne(product);
       res.send(result);
+    });
+    // Getting Product Data
+    app.get('/product', verifyJWT, async (req, res) => {
+      const userEmail = req.query.email;
+      const query = { email: userEmail };
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
+    // Delete Product
+    app.delete('/product/:id', verifyJWT, async (req, res) => {
+      const productId = req.params.id;
+      const filter = { _id: ObjectId(productId) };
+      const result = await productsCollection.deleteOne(filter);
+      res.send(result);
+    });
+    // Update Product info
+    app.put('/product/:id', verifyJWT, async (req, res) => {
+      const productId = req.params.id;
+      const updateInfo = req.body;
+      const filter = { _id: ObjectId(productId) };
+      if (updateInfo.isAdvertise) {
+        const updateDoc = {
+          $set: {
+            isAdvertise: true,
+          },
+        };
+        const result = await productsCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
     });
   } finally {
   }
