@@ -62,6 +62,9 @@ async function run() {
     const productsCollection = client
       .db('payAndBuy')
       .collection('productsData');
+    const categoryCollection = client
+      .db('payAndBuy')
+      .collection('categoryData');
     // Add new user
     // Json Web Token
     app.get('/jwt', async (req, res) => {
@@ -105,7 +108,10 @@ async function run() {
     app.get('/product', verifyJWT, async (req, res) => {
       const userEmail = req.query.email;
       const query = { email: userEmail };
-      const result = await productsCollection.find(query).toArray();
+      const result = await productsCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Delete Product
@@ -129,6 +135,27 @@ async function run() {
         const result = await productsCollection.updateOne(filter, updateDoc);
         res.send(result);
       }
+    });
+    // Getting Category data
+    app.get('/category', async (req, res) => {
+      const number = +req.query.size;
+      const query = {};
+      const result = await categoryCollection
+        .find(query)
+        .limit(number)
+        .toArray();
+      const count = await categoryCollection.estimatedDocumentCount();
+      res.send({ count, result });
+    });
+    // Getting Advertisement Data
+    app.get('/advertiseProduct', async (req, res) => {
+      const query = {
+        isAdvertise: { $eq: true },
+        isBooking: { $eq: false },
+      };
+      // .sort({ date: -1 })
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
     });
   } finally {
   }

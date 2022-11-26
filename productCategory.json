@@ -1,0 +1,37 @@
+[
+  {
+    "categoryTitle": "Camera",
+    "img": "https://i.ibb.co/PCvP2jZ/camera.jpg",
+    "index": "01"
+  },
+  {
+    "categoryTitle": "Camera Lens",
+    "img": "https://i.ibb.co/qDK1dJT/lens.jpg",
+    "index": "02"
+  },
+  {
+    "categoryTitle": "Tripod",
+    "img": "https://i.ibb.co/RYg4V2r/tripod.jpg",
+    "index": "03"
+  },
+  {
+    "categoryTitle": "Battery",
+    "img": "https://i.ibb.co/nn3ycW1/battery.jpg",
+    "index": "04"
+  },
+  {
+    "categoryTitle": "Memory Card",
+    "img": "https://i.ibb.co/4PpSXgJ/memory-card.jpg",
+    "index": "05"
+  },
+  {
+    "categoryTitle": "Camera Strap",
+    "img": "https://i.ibb.co/g79vLHJ/strap.jpg",
+    "index": "06"
+  },
+  {
+    "categoryTitle": "Camera Bag",
+    "img": "https://i.ibb.co/sscbx8j/bag.jpg",
+    "index": "07"
+  }
+]
