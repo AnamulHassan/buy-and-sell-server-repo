@@ -175,6 +175,17 @@ async function run() {
       const bookingResult = await bookingCollection.insertOne(bookingInfo);
       res.send({ replacementResult, bookingResult });
     });
+    // Getting Product By Category Name
+    app.get('/products', verifyJWT, async (req, res) => {
+      const categoryName = req.query.path;
+      const query = {
+        category: categoryName,
+        isAdvertise: { $eq: true },
+        isBooking: { $eq: false },
+      };
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
   } finally {
   }
 }
