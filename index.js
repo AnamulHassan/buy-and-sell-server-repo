@@ -46,6 +46,10 @@ function verifyAdmin(req, res, next) {
     next();
   }
 }
+function verifySeller(req, res, next) {
+  const adminEmail = req.query.email;
+  const decodedEmail = req.decoded.email;
+}
 
 // MongoDB Setup
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.yts1hwu.mongodb.net/?retryWrites=true&w=majority`;
