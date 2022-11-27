@@ -65,6 +65,7 @@ async function run() {
     const categoryCollection = client
       .db('payAndBuy')
       .collection('categoryData');
+    const bookingCollection = client.db('payAndBuy').collection('bookingData');
     // Add new user
     // Json Web Token
     app.get('/jwt', async (req, res) => {
@@ -156,6 +157,23 @@ async function run() {
       // .sort({ date: -1 })
       const result = await productsCollection.find(query).toArray();
       res.send(result);
+    });
+    // Added Booking
+    app.post('/booking', verifyJWT, async (req, res) => {
+      const bookingInfo = req.body;
+      const productId = bookingInfo.productId;
+      const productFilter = { _id: ObjectId(productId) };
+      const replacement = {
+        $set: {
+          isBooking: true,
+        },
+      };
+      const replacementResult = await productsCollection.updateOne(
+        productFilter,
+        replacement
+      );
+      const bookingResult = await bookingCollection.insertOne(bookingInfo);
+      res.send({ replacementResult, bookingResult });
     });
   } finally {
   }
