@@ -11,6 +11,14 @@ const stripe = require('stripe')(`${process.env.STRIPE_SECRET}`);
 app.use(cors());
 app.use(express.json());
 
+// MongoDB Setup
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.yts1hwu.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
+
 // Middleware for verifying user
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -36,13 +44,7 @@ function verifyJWT(req, res, next) {
   );
 }
 
-// MongoDB Setup
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.yts1hwu.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverApi: ServerApiVersion.v1,
-});
+
 
 async function run() {
   try {
@@ -56,8 +58,11 @@ async function run() {
       .collection('categoryData');
     const bookingCollection = client.db('payAndBuy').collection('bookingData');
     const paymentCollection = client.db('payAndBuy').collection('paymentData');
+    const wishlistCollection = client
+      .db('payAndBuy')
+      .collection('wishlistData');
     // Add new user
-    // Json Web Token
+    // Json Web Tokence
     app.get('/jwt', async (req, res) => {
       const userEmail = req.query.email;
       const filter = { email: userEmail };
