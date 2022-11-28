@@ -34,22 +34,6 @@ function verifyJWT(req, res, next) {
     }
   );
 }
-// Middle ware for verifying admin
-function verifyAdmin(req, res, next) {
-  const adminEmail = req.query.email;
-  const decodedEmail = req.decoded.email;
-  if (adminEmail !== decodedEmail) {
-    return res
-      .status(403)
-      .send({ acknowledged: false, message: 'forbidden access' });
-  } else {
-    next();
-  }
-}
-function verifySeller(req, res, next) {
-  const adminEmail = req.query.email;
-  const decodedEmail = req.decoded.email;
-}
 
 // MongoDB Setup
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.yts1hwu.mongodb.net/?retryWrites=true&w=majority`;
@@ -84,6 +68,45 @@ async function run() {
         res.send({ accessToken: token });
       } else {
         res.status(403).send({ accessToken: 'unauthorized' });
+      }
+    });
+    // Seller Verification
+    app.get('/user/seller/:email', async (req, res) => {
+      const userEmail = req.params.email;
+      const filter = { email: userEmail };
+      const result = await usersCollection.findOne(filter);
+      if (result.isSeller === true) {
+        res.send({ isSeller: true });
+      } else {
+        res
+          .status(403)
+          .send({ acknowledged: false, message: 'forbidden access' });
+      }
+    });
+    // Admin Verification
+    app.get('/user/admin/:email', async (req, res) => {
+      const userEmail = req.params.email;
+      const filter = { email: userEmail };
+      const result = await usersCollection.findOne(filter);
+      if (result.isAdmin === true) {
+        res.send({ isAdmin: true });
+      } else {
+        res
+          .status(403)
+          .send({ acknowledged: false, message: 'forbidden access' });
+      }
+    });
+    // Buyer Verification
+    app.get('/user/buyer/:email', async (req, res) => {
+      const userEmail = req.params.email;
+      const filter = { email: userEmail };
+      const result = await usersCollection.findOne(filter);
+      if (result.isBuyer === true) {
+        res.send({ isBuyer: true });
+      } else {
+        res
+          .status(403)
+          .send({ acknowledged: false, message: 'forbidden access' });
       }
     });
     // Upload User Information
@@ -189,6 +212,42 @@ async function run() {
       };
       const result = await productsCollection.find(query).toArray();
       res.send(result);
+    });
+    // Getting Orders Data
+    app.get('/myOrders', verifyJWT, async (req, res) => {
+      const userEmail = req.query.email;
+      const filter = { buyerEmail: userEmail };
+      const result = await bookingCollection.find(filter).toArray();
+      res.send(result);
+    });
+    // Payment
+    app.post('/create-payment-intent', async (req, res) => {
+      const price = req.body.price;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: +price * 100,
+        currency: 'usd',
+        payment_method_types: ['card'],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+    // Payment Data store and update
+    app.post('/payment', async (req, res) => {
+      const paymentData = req.body;
+      const paymentResult = await paymentCollection.insertOne(paymentData);
+      const filter = { _id: ObjectId(paymentData.paymentId) };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          transactionId: paymentData.transactionId,
+        },
+      };
+      const bookingResult = await bookingsCollection.updateOne(
+        filter,
+        updateDoc
+      );
+      res.send({ paymentResult, bookingResult });
     });
   } finally {
   }
