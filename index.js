@@ -44,8 +44,6 @@ function verifyJWT(req, res, next) {
   );
 }
 
-
-
 async function run() {
   try {
     // Data collection
@@ -136,8 +134,17 @@ async function run() {
     // Upload Product
     app.post('/product', verifyJWT, async (req, res) => {
       const product = req.body;
-      const result = await productsCollection.insertOne(product);
-      res.send(result);
+      const sellerEmail = req.body.email;
+      const filterUser = { email: sellerEmail };
+      const resultSeller = await usersCollection.findOne(filterUser);
+      if (resultSeller.isVerify === true) {
+        product.isSellerVerification = true;
+        const result = await productsCollection.insertOne(product);
+        res.send(result);
+      } else {
+        const result = await productsCollection.insertOne(product);
+        res.send(result);
+      }
     });
     // Getting Product Data
     app.get('/product', verifyJWT, async (req, res) => {
@@ -161,13 +168,18 @@ async function run() {
       const productId = req.params.id;
       const updateInfo = req.body;
       const filter = { _id: ObjectId(productId) };
+      const options = { upsert: true };
       if (updateInfo.isAdvertise) {
         const updateDoc = {
           $set: {
             isAdvertise: true,
           },
         };
-        const result = await productsCollection.updateOne(filter, updateDoc);
+        const result = await productsCollection.updateOne(
+          filter,
+          updateDoc,
+          options
+        );
         res.send(result);
       }
     });
@@ -188,8 +200,10 @@ async function run() {
         isAdvertise: { $eq: true },
         isBooking: { $eq: false },
       };
-      // .sort({ date: -1 })
-      const result = await productsCollection.find(query).toArray();
+      const result = await productsCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Added Booking
@@ -197,6 +211,8 @@ async function run() {
       const bookingInfo = req.body;
       const productId = bookingInfo.productId;
       const productFilter = { _id: ObjectId(productId) };
+      const options = { upsert: true };
+
       const replacement = {
         $set: {
           isBooking: true,
@@ -204,7 +220,8 @@ async function run() {
       };
       const replacementResult = await productsCollection.updateOne(
         productFilter,
-        replacement
+        replacement,
+        options
       );
       const bookingResult = await bookingCollection.insertOne(bookingInfo);
       res.send({ replacementResult, bookingResult });
@@ -214,17 +231,23 @@ async function run() {
       const categoryName = req.query.path;
       const query = {
         category: categoryName,
-        isAdvertise: { $eq: true },
         isBooking: { $eq: false },
       };
-      const result = await productsCollection.find(query).toArray();
+
+      const result = await productsCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Getting Orders Data
     app.get('/myOrders', verifyJWT, async (req, res) => {
       const userEmail = req.query.email;
       const filter = { buyerEmail: userEmail };
-      const result = await bookingCollection.find(filter).toArray();
+      const result = await bookingCollection
+        .find(filter)
+        .sort({ bookingTime: -1 })
+        .toArray();
       res.send(result);
     });
     // Payment
@@ -243,6 +266,7 @@ async function run() {
     app.post('/payment', verifyJWT, async (req, res) => {
       const paymentInfo = req.body;
       const productFilter = { _id: ObjectId(paymentInfo?.productId) };
+      const options = { upsert: true };
       const productUpdateDoc = {
         $set: {
           isSold: true,
@@ -250,7 +274,8 @@ async function run() {
       };
       const productResult = await productsCollection.updateOne(
         productFilter,
-        productUpdateDoc
+        productUpdateDoc,
+        options
       );
       const bookingFilter = { _id: ObjectId(paymentInfo?.paymentId) };
       const bookingUpdateDoc = {
@@ -260,7 +285,8 @@ async function run() {
       };
       const bookingResult = await bookingCollection.updateOne(
         bookingFilter,
-        bookingUpdateDoc
+        bookingUpdateDoc,
+        options
       );
       const paymentResult = await paymentCollection.insertOne(paymentInfo);
       res.send({ productResult, bookingResult, paymentResult });
@@ -275,7 +301,10 @@ async function run() {
     // Getting All Seller
     app.get('/allSeller', verifyJWT, async (req, res) => {
       const query = { isSeller: { $eq: true } };
-      const result = await usersCollection.find(query).toArray();
+      const result = await usersCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Delete Seller
@@ -288,7 +317,10 @@ async function run() {
     // Getting All Buyer
     app.get('/allBuyer', verifyJWT, async (req, res) => {
       const query = { isBuyer: { $eq: true } };
-      const result = await usersCollection.find(query).toArray();
+      const result = await usersCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Delete Buyer
@@ -297,6 +329,77 @@ async function run() {
       const filter = { _id: ObjectId(buyerId) };
       const result = await usersCollection.deleteOne(filter);
       res.send(result);
+    });
+    app.put('/bookingCancel', verifyJWT, async (req, res) => {
+      const ids = req.body;
+      const filterBooking = { _id: ObjectId(ids.bookingId) };
+      const filterProduct = { _id: ObjectId(ids.productID) };
+      const bookingResult = await bookingCollection.deleteOne(filterBooking);
+      const updateDoc = {
+        $set: {
+          isBooking: false,
+        },
+      };
+      const productResult = await productsCollection.updateOne(
+        filterProduct,
+        updateDoc
+      );
+      res.send({ bookingResult, productResult });
+    });
+    // Getting All buyer for specific seller
+    app.get('/sellerSBuyer', async (req, res) => {
+      const sellerEmail = req.query.email;
+      const filter = { sellerEmail: sellerEmail };
+      const result = await paymentCollection
+        .find(filter)
+        .sort({ paymentTime: -1 })
+        .toArray();
+      res.send(result);
+    });
+    // Add WishList Data
+    app.post('/wishlist', verifyJWT, async (req, res) => {
+      const wishListData = req.body;
+      const filter = { productId: wishListData?.productId };
+      const oldWishlist = await wishlistCollection.findOne(filter);
+      if (!oldWishlist) {
+        const result = await wishlistCollection.insertOne(wishListData);
+        res.send(result);
+      } else {
+        res.send({ acknowledged: false });
+      }
+    });
+    //Getting Wishlist Data by Buyer Email
+    app.get('/wishlist', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { buyerEmail: email };
+      const result = await wishlistCollection.find(filter).toArray();
+      res.send(result);
+    });
+    // Verify seller by administer
+    app.put('/sellerVerify', verifyJWT, async (req, res) => {
+      const sellerEmail = req.body.sellerEmail;
+
+      const filterUser = { email: sellerEmail };
+      const filterProduct = { email: sellerEmail };
+      const updateUserDoc = {
+        $set: {
+          isVerify: true,
+        },
+      };
+      const updateProductDoc = {
+        $set: {
+          isSellerVerification: true,
+        },
+      };
+      const userResult = await usersCollection.updateOne(
+        filterUser,
+        updateUserDoc
+      );
+      const productResult = await productsCollection.updateMany(
+        filterProduct,
+        updateProductDoc
+      );
+      res.send({ userResult, productResult });
     });
   } finally {
   }
