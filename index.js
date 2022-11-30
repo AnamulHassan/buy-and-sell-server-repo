@@ -266,12 +266,17 @@ async function run() {
     app.post('/payment', verifyJWT, async (req, res) => {
       const paymentInfo = req.body;
       const productFilter = { _id: ObjectId(paymentInfo?.productId) };
+      const wishListFilter = { productId: paymentInfo?.productId };
       const options = { upsert: true };
       const productUpdateDoc = {
         $set: {
           isSold: true,
         },
       };
+      const wishlistResult = await wishlistCollection.updateOne(
+        wishListFilter,
+        productUpdateDoc
+      );
       const productResult = await productsCollection.updateOne(
         productFilter,
         productUpdateDoc,
@@ -372,7 +377,10 @@ async function run() {
     app.get('/wishlist', verifyJWT, async (req, res) => {
       const email = req.query.email;
       const filter = { buyerEmail: email };
-      const result = await wishlistCollection.find(filter).toArray();
+      const result = await wishlistCollection
+        .find(filter)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
     // Verify seller by administer
